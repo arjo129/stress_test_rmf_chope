@@ -1,0 +1,2 @@
+ros2 run rmf_demos_tasks dispatch_patrol -F tinyRobot -R tinyRobot1 -p tinyRobot1_charger -p supplies -p tinyRobot1_charger -n 3 --use_sim_time
+#ros2 run rmf_demos_tasks dispatch_patrol -F tinyRobot -R tinyRobot2 -p supplies -p tinyRobot1_charger -n 2 --use_sim_time
