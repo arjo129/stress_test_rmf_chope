@@ -25,9 +25,11 @@ def assert_only_one_robot_in_place(
 ) -> None:
     history = reservation_observer.history(place)
     for occupants in history:
-        if len(occupants) > 1:
+        # Only consider robots under test, ignore unrelated robots in the system
+        relevant_occupants = [robot for robot in occupants if robot in robots]
+        if len(relevant_occupants) > 1:
             raise AssertionError(
-                f"Multiple robots in {place}: {sorted(occupants)}"
+                f"Multiple robots in {place}: {sorted(relevant_occupants)}"
             )
 
 
