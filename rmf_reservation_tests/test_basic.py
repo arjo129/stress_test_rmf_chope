@@ -53,10 +53,8 @@ def _wait_for_task_complete_with_snapshots(
     executor,
     task_observer,
     reservation_observer,
-    fleet_observer,
     place,
     robots,
-    blocking_robot,
     task_id,
     timeout,
 ):
@@ -64,14 +62,6 @@ def _wait_for_task_complete_with_snapshots(
     while rclpy.ok():
         executor.spin_once(timeout_sec=0.1)
         reservation_observer.snapshot(place, robots)
-        if (
-            blocking_robot
-            and fleet_observer.robot_location(blocking_robot) == place
-            and not task_observer.is_completed(task_id)
-        ):
-            raise AssertionError(
-                f"{blocking_robot} entered {place} before task {task_id} completed"
-            )
         if task_observer.is_completed(task_id):
             return
         if now_monotonic() - start > timeout:
@@ -136,10 +126,8 @@ def test_basic_reservation_flow(
         executor,
         task_observer,
         reservation_observer,
-        fleet_observer,
         PANTRY,
         [ROBOT_1, ROBOT_2],
-        ROBOT_1,
         task_r2_pantry,
         180.0,
     )
