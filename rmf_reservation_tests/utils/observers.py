@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+import threading
+import time
 from typing import Dict, List, Optional, Set
 
 import rclpy
@@ -8,6 +10,13 @@ from rmf_fleet_msgs.msg import FleetState
 from rmf_task_msgs.msg import TaskSummary
 
 from .helpers import get_location_name, safe_getattr
+
+try:
+    from rmf_reservation_msgs.msg import Claim, Release, ReservationRequest, Ticket
+except ImportError as exc:
+    raise ImportError(
+        "rmf_reservation_msgs not found — install the rmf_reservation package"
+    ) from exc
 
 
 @dataclass
@@ -98,18 +107,108 @@ class TaskSummaryObserver:
         return False
 
 
-class ReservationObserver:
-    def __init__(self, fleet_observer: FleetStateObserver):
-        self._fleet_observer = fleet_observer
-        self._history: Dict[str, List[Set[str]]] = {}
+@dataclass(frozen=True)
+class ReservationEvent:
+    timestamp: float
+    event_type: str
+    robot: str
+    place: str
 
-    def snapshot(self, place: str, robots: List[str]) -> Set[str]:
-        occupants = set()
-        for robot in robots:
-            if self._fleet_observer.robot_location(robot) == place:
-                occupants.add(robot)
-        self._history.setdefault(place, []).append(occupants)
-        return occupants
 
-    def history(self, place: str) -> List[Set[str]]:
-        return self._history.get(place, [])
+class ReservationStateTracker:
+    def __init__(self, node: rclpy.node.Node):
+        self._node = node
+        self._lock = threading.RLock()
+        self._waiting: Dict[str, List[str]] = {}
+        self._current_owner: Dict[str, Optional[str]] = {}
+        self._events: Dict[str, List[ReservationEvent]] = {}
+        self._qos = QoSProfile(depth=20)
+
+        self._request_sub = node.create_subscription(
+            ReservationRequest,
+            "/rmf_reservation/request",
+            self._on_request,
+            self._qos,
+        )
+        self._ticket_sub = node.create_subscription(
+            Ticket,
+            "/rmf_reservation/ticket",
+            self._on_ticket,
+            self._qos,
+        )
+        self._claim_sub = node.create_subscription(
+            Claim,
+            "/rmf_reservation/claim",
+            self._on_claim,
+            self._qos,
+        )
+        self._release_sub = node.create_subscription(
+            Release,
+            "/rmf_reservation/release",
+            self._on_release,
+            self._qos,
+        )
+
+    def __repr__(self) -> str:
+        with self._lock:
+            places = sorted(self._events.keys())
+            owners = {place: self._current_owner.get(place) for place in places}
+            waiting = {place: list(self._waiting.get(place, [])) for place in places}
+        return (
+            f"ReservationStateTracker(places={places}, "
+            f"owners={owners}, waiting={waiting})"
+        )
+
+    def current_owner(self, place: str) -> Optional[str]:
+        with self._lock:
+            return self._current_owner.get(place)
+
+    def waiting_queue(self, place: str) -> List[str]:
+        with self._lock:
+            return list(self._waiting.get(place, []))
+
+    def all_events(self, place: str) -> List[ReservationEvent]:
+        with self._lock:
+            return list(self._events.get(place, []))
+
+    def _on_request(self, msg: ReservationRequest) -> None:
+        place = msg.place_name
+        robot = msg.robot_name
+        self._append_event(place, "request", robot)
+        with self._lock:
+            waiting = self._waiting.setdefault(place, [])
+            if robot not in waiting and self._current_owner.get(place) != robot:
+                waiting.append(robot)
+
+    def _on_ticket(self, msg: Ticket) -> None:
+        place = msg.place_name
+        robot = msg.robot_name
+        self._append_event(place, "ticket", robot)
+
+    def _on_claim(self, msg: Claim) -> None:
+        place = msg.place_name
+        robot = msg.robot_name
+        self._append_event(place, "claim", robot)
+        with self._lock:
+            self._current_owner[place] = robot
+            waiting = self._waiting.setdefault(place, [])
+            if robot in waiting:
+                waiting.remove(robot)
+
+    def _on_release(self, msg: Release) -> None:
+        place = msg.place_name
+        robot = msg.robot_name
+        self._append_event(place, "release", robot)
+        with self._lock:
+            if self._current_owner.get(place) == robot:
+                self._current_owner[place] = None
+
+    def _append_event(self, place: str, event_type: str, robot: str) -> None:
+        event = ReservationEvent(
+            timestamp=time.monotonic(),
+            event_type=event_type,
+            robot=robot,
+            place=place,
+        )
+        with self._lock:
+            self._events.setdefault(place, []).append(event)
