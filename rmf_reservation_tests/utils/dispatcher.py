@@ -72,11 +72,12 @@ class TaskDispatcher:
             setattr(request, field, value)
 
     def _set_time_fields(self, request: DispatchTask.Request) -> None:
-        time_msg = self._node.get_clock().now().to_msg()
+        now = self._node.get_clock().now()
+        time_msg = now.to_msg()
         if hasattr(request, "start_time"):
             request.start_time = time_msg
         if hasattr(request, "unix_millis_time"):
-            request.unix_millis_time = int(self._node.get_clock().now().nanoseconds / 1e6)
+            request.unix_millis_time = now.nanoseconds // 1_000_000
 
     def _extract_task_id(self, response: DispatchTask.Response) -> Optional[str]:
         for field in ("task_id", "task_id_state", "assignment_id"):
