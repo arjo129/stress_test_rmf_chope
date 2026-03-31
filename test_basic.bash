@@ -1,6 +1,13 @@
 #!/bin/bash
 
 # NOTE: Test with finishing request set to [nothing]
+
+# FIX: Prevent startup race condition.
+# Polling ROS 2 network to ensure the RMF fleet adapter is fully initialized before firing the dispatch commands.
+while ! ros2 topic list | grep -q "/fleet_states"; do
+  sleep 2
+done
+
 # Initialize robot positions
 ros2 run rmf_demos_tasks dispatch_go_to_place -p tinyRobot1_charger -F tinyRobot -R tinyRobot1 --use_sim_time
 ros2 run rmf_demos_tasks dispatch_go_to_place -p tinyRobot2_charger -F tinyRobot -R tinyRobot2 --use_sim_time
