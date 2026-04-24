@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # NOTE: Test with finishing request set to [nothing]
-# monitor /robot_collisions for collision events.
-# rmf_fleet_msgs/msg/RobotCollision defined in rmf_internal_msgs#90.
-# Published by rmf_simulation when emergency_stop() fires (rmf_simulation#160).
+# Monitor /robot_collisions for collision events.
+# The topic uses rmf_fleet_msgs/msg/RobotCollision messages.
+# These messages indicate an emergency stop/collision event in the simulation.
 COLLISION_LOG=$(mktemp)
 ros2 topic echo /robot_collisions rmf_fleet_msgs/msg/RobotCollision \
     --no-daemon 2>/dev/null > "$COLLISION_LOG" &
