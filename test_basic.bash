@@ -1,10 +1,12 @@
 #!/bin/bash
 
 # NOTE: Test with finishing request set to [nothing]
-# fix: monitor /rosout for "to avoid a collision" logs to detect reservation failures (when #160 merges, upgrade to /robot_collisions)
+# monitor /robot_collisions for collision events.
+# rmf_fleet_msgs/msg/RobotCollision defined in rmf_internal_msgs#90.
+# Published by rmf_simulation when emergency_stop() fires (rmf_simulation#160).
 COLLISION_LOG=$(mktemp)
-ros2 topic echo /rosout rcl_interfaces/msg/Log --field msg --no-daemon 2>/dev/null \
-    | grep --line-buffered "to avoid a collision" > "$COLLISION_LOG" &
+ros2 topic echo /robot_collisions rmf_fleet_msgs/msg/RobotCollision \
+    --no-daemon 2>/dev/null > "$COLLISION_LOG" &
 COLLISION_MONITOR_PID=$!
 
 cleanup() {
