@@ -15,6 +15,7 @@ cleanup() {
     if [ -s "$COLLISION_LOG" ]; then
         echo "Test failed: reservation system failure — emergency stop detected"
         cat "$COLLISION_LOG"
+        rm -f "$COLLISION_LOG"
         exit 1
     fi
     rm -f "$COLLISION_LOG"
