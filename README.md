@@ -4,6 +4,8 @@ This folder contains bash scripts for high-level integration tests of Open-RMF. 
 
 ## test_basic
 
+Initializes tinyRobot1 and tinyRobot2 at their chargers, sends robot2 to pantry then overlaps robot1 to the same pantry after 10 s, then robot2 to lounge, verifying that Open-RMF resolves the first-come conflict and sequences the tasks without deadlock.
+
 ```mermaid
 flowchart TD
     A["Init: tinyRobot1 to tinyRobot1_charger"] --> B["Wait complete"]
@@ -18,6 +20,8 @@ flowchart TD
 ```
 
 ## test_cancellation
+
+Initializes both robots at their chargers, creates a conflict for coe between robot2 then robot1 with a follow-up return task for robot2, cancels robot2’s coe task after 6 s and checks that cancellation frees the place for robot1 and both robots complete their remaining tasks.
 
 ```mermaid
 flowchart TD
@@ -34,6 +38,8 @@ flowchart TD
 
 ## test_current_waitspot
 
+Initializes both robots at their chargers, dispatches robot1 to tinyRobot2_charger so it can use its current location as a valid waitspot with finishing request set to nothing and supplies removed as parking, then sends robot2 to supplies to free space, verifying correct wait-spot allocation and completion.
+
 ```mermaid
 flowchart TD
     A["Init: tinyRobot1 to tinyRobot1_charger"] --> B["Wait complete"]
@@ -46,6 +52,8 @@ flowchart TD
 ```
 
 ## test_emergency_pullover
+
+Initializes both robots at their chargers, starts patrols to hardware_2 and pantry, publishes emergency_signal is_emergency=true to force parking, waits, then publishes is_emergency=false and verifies both robots resume and finish their patrol tasks.
 
 ```mermaid
 flowchart TD
@@ -63,6 +71,8 @@ flowchart TD
 
 ## test_multi_place
 
+Initializes both robots at their chargers, sends robot2 to pantry and waits, then dispatches robot1 to a multi-place request lounge pantry and verifies Open-RMF picks lounge because pantry is occupied by robot2.
+
 ```mermaid
 flowchart TD
     A["Init: tinyRobot1 to tinyRobot1_charger"] --> B["Wait complete"]
@@ -75,6 +85,8 @@ flowchart TD
 
 ## test_patrol
 
+Sets robot2 to lounge and robot1 to pantry, then issues overlapping patrols for both robots between tinyRobot1_charger ↔ supplies with n=2 and verifies the planner resolves the bidirectional use of shared places and both patrols complete.
+
 ```mermaid
 flowchart TD
     A["Init: tinyRobot2 to lounge"] --> B["Wait complete"]
@@ -86,6 +98,8 @@ flowchart TD
 ```
 
 ## test_swap
+
+Initializes both robots at their chargers, swaps them to each other's chargers, then later forces a position swap via charger/supplies moves using get_robot_location ... -B supplies semantics, verifying deadlock-free swapping and blocking behavior in Open-RMF.
 
 ```mermaid
 flowchart TD
