@@ -2,6 +2,9 @@
 
 This folder contains bash scripts for high-level integration tests of Open-RMF. Each script initializes two tiny robots, dispatches tasks via `rmf_demos_tasks`, and verifies completion.
 
+> [!NOTE]
+> These stress tests are all based in `office` simulation.
+
 ## test_basic
 
 Initializes tinyRobot1 and tinyRobot2 at their chargers, sends robot2 to pantry then overlaps robot1 to the same pantry after 10 s, then robot2 to lounge, verifying that Open-RMF resolves the first-come conflict and sequences the tasks without deadlock.
